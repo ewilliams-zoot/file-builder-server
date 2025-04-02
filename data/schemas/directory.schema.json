@@ -1,0 +1,75 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "directory",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "string"
+        },
+        "data": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/node"
+            }
+        }
+    },
+    "required": [
+        "id",
+        "data"
+    ],
+    "additionalProperties": false,
+    "$defs": {
+        "node": {
+            "oneOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "nodeType": {
+                            "const": "folder"
+                        },
+                        "id": {
+                            "type": "string"
+                        },
+                        "name": {
+                            "type": "string"
+                        },
+                        "children": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/$defs/node"
+                            }
+                        }
+                    },
+                    "required": [
+                        "children"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "nodeType": {
+                            "const": "file"
+                        },
+                        "id": {
+                            "type": "string"
+                        },
+                        "name": {
+                            "type": "string"
+                        },
+                        "fileType": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "fileType"
+                    ]
+                }
+            ],
+            "required": [
+                "id",
+                "nodeType",
+                "name"
+            ]
+        }
+    }
+}
