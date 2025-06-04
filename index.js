@@ -1,5 +1,5 @@
 import express from 'express';
-import { readdirSync, rmSync } from 'node:fs';
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { argv } from 'node:process';
 
 const app = express();
@@ -57,8 +57,27 @@ app.get('/api/directory', (req, res) => {
   res.json({ data: folders.data.children });
 });
 
+app.put('/api/folder', express.json(), (req, res) => {
+  const { folderName, parentPath } = req.body;
+
+  mkdirSync(`${parentPath}/${folderName}`);
+  res.json({ status: 'success' });
+});
+
+app.put('/api/file', express.json(), (req, res) => {
+  const { fileName, parentPath, initialData } = req.body;
+
+  writeFileSync(`${parentPath}/${fileName}`, initialData, { flag: 'w', encoding: 'utf-8' });
+  res.json({ status: 'success' });
+});
+
 app.delete('/api/folder/:path', (req, res) => {
   rmSync(req.params.path, { recursive: true });
+  res.json({ status: 'success' });
+});
+
+app.delete('/api/file/:path', (req, res) => {
+  rmSync(req.params.path);
   res.json({ status: 'success' });
 });
 
