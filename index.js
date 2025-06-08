@@ -1,5 +1,5 @@
 import express from 'express';
-import { Dirent, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { Dirent, mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { argv } from 'node:process';
 
 const app = express();
@@ -110,6 +110,18 @@ app.delete('/api/file', (req, res) => {
   }
 
   rmSync(deletePath);
+  res.json({ status: 'success' });
+});
+
+app.patch(/\/api\/(?:file|folder)/, (req, res) => {
+  const path = req.query.path?.toString();
+  const newPath = req.query.newPath?.toString();
+  if (!path || !newPath) {
+    res.status(400).json({ detail: 'path and new name are required' });
+    return;
+  }
+
+  renameSync(path, newPath);
   res.json({ status: 'success' });
 });
 
