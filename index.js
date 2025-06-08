@@ -1,5 +1,5 @@
 import express from 'express';
-import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { Dirent, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { argv } from 'node:process';
 
 const app = express();
@@ -25,36 +25,20 @@ app.use((req, res, next) => {
 });
 
 app.get('/api/directory', (req, res) => {
-  const dataContents = readdirSync('./data', { withFileTypes: true, recursive: true });
-
-  let folders = { data: { children: [] } };
-  for (const dirent of dataContents) {
-    let newData;
-    if (dirent.isFile()) {
-      newData = {
-        id: crypto.randomUUID(),
-        nodeType: dirent.isFile() ? 'file' : 'folder',
-        name: dirent.name,
-        parentPath: dirent.parentPath,
-        fileType: dirent.name.split('.')[1]
-      };
-    } else {
-      newData = {
-        id: crypto.randomUUID(),
-        nodeType: 'folder',
-        name: dirent.name,
-        parentPath: dirent.parentPath,
-        children: []
-      };
-      folders[dirent.name] = newData;
-    }
-
-    const pathParts = dirent.parentPath.split('/');
-    const parentName = pathParts[pathParts.length - 1];
-    folders[parentName].children.push(newData);
+  const readPath = req.query.path?.toString();
+  if (!readPath) {
+    res.status(400).json({ detail: 'path param must be present' });
+    return;
   }
-
-  res.json({ data: folders.data.children });
+  /** @type {Dirent[]} */
+  const dataContents = readdirSync(readPath, { encoding: 'utf-8', withFileTypes: true });
+  res.json({
+    data: dataContents.map((dirent) => ({
+      parentPath: dirent.parentPath,
+      name: dirent.name,
+      nodeType: dirent.isFile() ? 'file' : 'folder'
+    }))
+  });
 });
 
 app.put('/api/folder', express.json(), (req, res) => {
@@ -66,8 +50,38 @@ app.put('/api/folder', express.json(), (req, res) => {
 
 app.put('/api/file', express.json(), (req, res) => {
   const { fileName, parentPath, initialData } = req.body;
+  let modifiedFileName = fileName;
 
-  writeFileSync(`${parentPath}/${fileName}`, initialData, { flag: 'w', encoding: 'utf-8' });
+  const dirents = readdirSync(parentPath, { encoding: 'utf-8', withFileTypes: true });
+  const files = dirents.filter((dirent) => dirent.isFile() && dirent.name.split('|')[0] === fileName);
+
+  files.sort((a, b) => {
+    if (a < b) return -1;
+    else if (a > b) return 1;
+    return 0;
+  });
+
+  if (files.length === 1) {
+    modifiedFileName = `${fileName}|1`;
+  } else if (files.length > 1) {
+    let fileNameModifier = -1;
+    let i = 1;
+    for (const file of files) {
+      const existingModifier = file.name.split('|')[1];
+      if (existingModifier && existingModifier !== `${i}`) {
+        fileNameModifier = i;
+        break;
+      }
+      i += 1;
+    }
+    if (fileNameModifier !== -1) {
+      modifiedFileName = `${fileName}|${fileNameModifier}`;
+    }
+  }
+
+  console.log(fileName, modifiedFileName);
+
+  writeFileSync(`${parentPath}/${modifiedFileName}`, initialData, { flag: 'w', encoding: 'utf-8' });
   res.json({ status: 'success' });
 });
 
