@@ -72,10 +72,16 @@ app.put('/api/file', express.json(), (req, res) => {
         fileNameModifier = i;
         break;
       }
-      i += 1;
+      if (existingModifier) {
+        i += 1;
+      }
     }
     if (fileNameModifier !== -1) {
+      // we found a gap in the number on the end
       modifiedFileName = `${fileName}|${fileNameModifier}`;
+    } else {
+      // we just need to add one to the last same-named file's modifier number
+      modifiedFileName = `${fileName}|${i}`;
     }
   }
 
@@ -85,13 +91,25 @@ app.put('/api/file', express.json(), (req, res) => {
   res.json({ status: 'success' });
 });
 
-app.delete('/api/folder/:path', (req, res) => {
-  rmSync(req.params.path, { recursive: true });
+app.delete('/api/folder', (req, res) => {
+  const deletePath = req.query.path?.toString();
+  if (!deletePath) {
+    res.status(400).json({ detail: 'Path query param is required' });
+    return;
+  }
+
+  rmSync(deletePath, { recursive: true });
   res.json({ status: 'success' });
 });
 
-app.delete('/api/file/:path', (req, res) => {
-  rmSync(req.params.path);
+app.delete('/api/file', (req, res) => {
+  const deletePath = req.query.path?.toString();
+  if (!deletePath) {
+    res.status(400).json({ detail: 'Path query param is required' });
+    return;
+  }
+
+  rmSync(deletePath);
   res.json({ status: 'success' });
 });
 
